@@ -1,5 +1,24 @@
 (() => {
-  const galleries = [...document.querySelectorAll('.projects-grid, .new-project-gallery, .page-gallery')];
+  const projectGallery = document.querySelector('.new-project-gallery');
+  const archiveGallery = document.querySelector('.page-gallery');
+  if (projectGallery) {
+    if (archiveGallery) {
+      projectGallery.append(...archiveGallery.querySelectorAll('figure'));
+      archiveGallery.remove();
+      document.querySelector('.archive-project-title')?.remove();
+    }
+    const wide = document.createElement('div');
+    wide.className = 'container wide-project-gallery';
+    document.querySelector('.page-layout').before(wide);
+    wide.append(projectGallery);
+  }
+  const homeGallery = document.querySelector('#projects .projects-grid');
+  const homeArchive = document.querySelector('#projects .project-archive-gallery');
+  if (homeGallery && homeArchive) {
+    homeArchive.querySelectorAll('figure').forEach(figure => homeGallery.append(figure));
+    homeArchive.remove();
+  }
+  const galleries = [...document.querySelectorAll('.projects-grid, .new-project-gallery')];
   if (!galleries.length) return;
   const photos = galleries.flatMap(gallery => [...gallery.querySelectorAll('figure img')]);
   const dialog = document.createElement('dialog');
@@ -69,35 +88,58 @@
     });
   });
   galleries.forEach((gallery, index) => {
-    gallery.classList.add('photo-carousel');
-    gallery.id ||= `photo-carousel-${index + 1}`;
+    const figures = [...gallery.querySelectorAll('figure')];
+    gallery.classList.add('featured-gallery');
+    gallery.id ||= `project-gallery-${index + 1}`;
     gallery.setAttribute('role', 'region');
-    gallery.setAttribute('aria-label', 'Фотографии объектов — горизонтальная галерея');
-    gallery.tabIndex = 0;
-    const toolbar = document.createElement('div');
-    toolbar.className = 'carousel-toolbar';
-    toolbar.innerHTML = `<span>Листайте фотографии · нажмите для увеличения</span><div><button type="button" aria-label="Прокрутить фотографии влево" aria-controls="${gallery.id}">←</button><button type="button" aria-label="Прокрутить фотографии вправо" aria-controls="${gallery.id}">→</button></div>`;
-    gallery.before(toolbar);
-    const [prev, next] = toolbar.querySelectorAll('button');
-    function move(direction) {
-      const first = gallery.querySelector('figure');
-      const distance = first.getBoundingClientRect().width + (parseFloat(getComputedStyle(gallery).gap) || 0);
-      gallery.scrollBy({ left: direction * distance, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' });
+    gallery.setAttribute('aria-label', 'Фотографии объектов');
+    const thumbs = document.createElement('div');
+    thumbs.className = 'gallery-thumbnails';
+    thumbs.setAttribute('role', 'group');
+    thumbs.setAttribute('aria-label', 'Выбор фотографии');
+    const controls = document.createElement('div');
+    controls.className = 'gallery-controls';
+    controls.innerHTML = '<span class="gallery-position" aria-live="polite"></span><span class="gallery-hint">Нажмите на фото, чтобы увеличить</span><div><button type="button" aria-label="Предыдущее фото в галерее">←</button><button type="button" aria-label="Следующее фото в галерее">→</button></div>';
+    gallery.after(controls);
+    controls.after(thumbs);
+    let selected = 0;
+    const buttons = figures.map((figure, i) => {
+      const original = figure.querySelector('img');
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.setAttribute('aria-label', `Фото ${i + 1}: ${original.alt}`);
+      const preview = original.cloneNode();
+      preview.removeAttribute('width');
+      preview.removeAttribute('height');
+      preview.alt = '';
+      button.append(preview);
+      button.onclick = () => select(i, true);
+      thumbs.append(button);
+      return button;
+    });
+    function select(i, reveal = false) {
+      selected = (i + figures.length) % figures.length;
+      figures.forEach((figure, n) => {
+        figure.hidden = n !== selected;
+        buttons[n].setAttribute('aria-pressed', String(n === selected));
+      });
+      controls.querySelector('.gallery-position').textContent = `${selected + 1} / ${figures.length}`;
+      if (reveal) {
+        const button = buttons[selected];
+        const left = button.offsetLeft - thumbs.offsetLeft;
+        thumbs.scrollTo({left: Math.max(0, left - (thumbs.clientWidth - button.clientWidth) / 2), behavior: 'smooth'});
+      }
     }
-    function update() {
-      prev.disabled = gallery.scrollLeft < 2;
-      next.disabled = gallery.scrollLeft + gallery.clientWidth >= gallery.scrollWidth - 2;
-    }
-    prev.onclick = () => move(-1);
-    next.onclick = () => move(1);
-    gallery.addEventListener('scroll', update, { passive: true });
-    gallery.addEventListener('keydown', event => {
-      if (event.target === gallery && ['ArrowLeft', 'ArrowRight'].includes(event.key)) {
+    const [prev,next] = controls.querySelectorAll('button');
+    prev.onclick = () => select(selected - 1, true);
+    next.onclick = () => select(selected + 1, true);
+    thumbs.addEventListener('keydown', event => {
+      if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
         event.preventDefault();
-        move(event.key === 'ArrowLeft' ? -1 : 1);
+        select(selected + (event.key === 'ArrowLeft' ? -1 : 1), true);
+        buttons[selected].focus({preventScroll:true});
       }
     });
-    new ResizeObserver(update).observe(gallery);
-    update();
+    select(0);
   });
 })();
