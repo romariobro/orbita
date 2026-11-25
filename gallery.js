@@ -18,12 +18,12 @@
     homeArchive.querySelectorAll('figure').forEach(figure => homeGallery.append(figure));
     homeArchive.remove();
   }
-  const galleries = [...document.querySelectorAll('.projects-grid, .new-project-gallery')];
+  const galleries = [...document.querySelectorAll('.projects-grid, .new-project-gallery, .equipment-gallery')];
   if (!galleries.length) return;
   const photos = galleries.flatMap(gallery => [...gallery.querySelectorAll('figure img')]);
   const dialog = document.createElement('dialog');
   dialog.className = 'photo-viewer';
-  dialog.setAttribute('aria-label', 'Просмотр фотографий объектов');
+  dialog.setAttribute('aria-label', 'Просмотр фотографий');
   dialog.innerHTML = `<div class="viewer-top"><span class="viewer-count" aria-live="polite"></span><button class="viewer-close" type="button" aria-label="Закрыть фотографию">Закрыть <span aria-hidden="true">×</span></button></div><div class="viewer-stage"><button class="viewer-prev" type="button" aria-label="Предыдущее фото">‹</button><img class="viewer-image" alt=""><button class="viewer-next" type="button" aria-label="Следующее фото">›</button></div><div class="viewer-bottom"><p class="viewer-caption"></p><span>← → — переключить · Esc — закрыть</span></div>`;
   document.body.append(dialog);
   const image = dialog.querySelector('.viewer-image');
@@ -92,7 +92,7 @@
     gallery.classList.add('featured-gallery');
     gallery.id ||= `project-gallery-${index + 1}`;
     gallery.setAttribute('role', 'region');
-    gallery.setAttribute('aria-label', 'Фотографии объектов');
+    gallery.setAttribute('aria-label', gallery.matches('.equipment-gallery') ? 'Фотографии оборудования Graco' : 'Фотографии объектов');
     const thumbs = document.createElement('div');
     thumbs.className = 'gallery-thumbnails';
     thumbs.setAttribute('role', 'group');
